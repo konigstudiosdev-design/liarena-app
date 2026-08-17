@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  
+  --color-background: #FFFFFF;
+  --color-foreground: #0A0A0B;
+  
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0A0A0B;
+  
+  --color-primary: #007AFF; /* Apple Blue */
+  --color-primary-hover: #0062CC;
+  --color-primary-foreground: #FFFFFF;
+  
+  --color-secondary: #F5F5F7; /* Apple Gray */
+  --color-secondary-hover: #E8E8ED;
+  --color-secondary-foreground: #1D1D1F;
+  
+  --color-muted: #F5F5F7;
+  --color-muted-foreground: #86868B;
+  
+  --color-accent: #F5F5F7;
+  --color-accent-foreground: #007AFF;
+  
+  --color-border: #E8E8ED;
+  --color-ring: rgba(0, 122, 255, 0.5);
+  
+  --color-success: #34C759;
+  --color-warning: #FF9F0A;
+  --color-danger: #FF3B30;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.04), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  --shadow-premium: 0 2px 4px rgba(0,0,0,0.02), 0 10px 20px rgba(0,0,0,0.04);
+
+  --animate-in: enter 0.2s ease-out;
+  --animate-out: exit 0.2s ease-in;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark-procedure {
+  --color-background: #000000;
+  --color-foreground: #FFFFFF;
+  --color-card: #1C1C1E;
+  --color-border: #2C2C2E;
+  --color-muted: #2C2C2E;
+  --color-muted-foreground: #8E8E93;
+}
+
+/* Linear-style selection */
+::selection {
+  background: rgba(0, 122, 255, 0.15);
+  color: inherit;
+}
+
+/* Custom Scrollbar - Premium minimal feel */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.dark-procedure .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+.dark-procedure .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
