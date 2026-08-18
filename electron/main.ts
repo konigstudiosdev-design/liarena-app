@@ -1,10 +1,12 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
-import path from 'node:path'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
 import { LiarenaUpdater } from './updater'
 
+const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure

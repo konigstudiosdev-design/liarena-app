@@ -14,6 +14,7 @@ import MedicDashboard from "./pages/MedicDashboard";
 import AssistantDashboard from "./pages/AssistantDashboard";
 import Patients from "./pages/Patients";
 import Profile from "./pages/Profile";
+import DownloadPage from "./pages/DownloadPage";
 import AdminManagement from "./pages/dev/AdminManagement";
 import OrganizationList from "./pages/dev/OrganizationList";
 import DeveloperDashboard from "./pages/DeveloperDashboard";
@@ -64,6 +65,7 @@ function AppWeb() {
           <Routes>
             {/* Acceso Directo */}
             <Route path="/" element={<Login />} />
+            <Route path="/download" element={<DownloadPage />} />
 
             {/* Developer Workspace */}
             <Route element={<SecurityGuard allowedRoles={['dev', 'developer']}><DashboardLayout role="dev" /></SecurityGuard>}>

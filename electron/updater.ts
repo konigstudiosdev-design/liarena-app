@@ -1,6 +1,11 @@
-import { autoUpdater } from 'electron-updater';
+import { createRequire } from 'node:module';
 import { BrowserWindow, ipcMain, app } from 'electron';
-import log from 'electron-log';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const require = createRequire(import.meta.url);
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
 
 // Configure logging
 autoUpdater.logger = log;
@@ -57,8 +62,6 @@ export class LiarenaUpdater {
 
   private logUpdateEvent(newVersion: string, result: string) {
     try {
-      const fs = require('fs');
-      const path = require('path');
       const logPath = path.join(app.getPath('userData'), 'update-history.log');
       const entry = `${new Date().toISOString()} | FROM: ${app.getVersion()} | TO: ${newVersion} | RESULT: ${result}\n`;
       fs.appendFileSync(logPath, entry);

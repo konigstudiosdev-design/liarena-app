@@ -1,7 +1,7 @@
 {
   "name": "liarena-saas",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -47,6 +47,7 @@
   "build": {
     "appId": "com.liarena.app",
     "productName": "Liarena",
+    "icon": "public/logo.png",
     "publish": [
       {
         "provider": "github",
@@ -65,7 +66,12 @@
       "target": [
         "dmg"
       ],
+      "icon": "public/logo.png",
       "artifactName": "${productName}-${version}-${os}.${ext}"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/logo.png"
     }
   }
 }
