@@ -51,7 +51,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "konigstudiosdev",
+        "owner": "konigstudiosdev-design",
         "repo": "liarena-app"
       }
     ],
@@ -71,7 +71,8 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "public/logo.png"
+      "icon": "public/logo.png",
+      "artifactName": "${productName}-${version}-${os}.${ext}"
     }
   }
 }

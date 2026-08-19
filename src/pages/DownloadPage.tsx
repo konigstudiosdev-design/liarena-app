@@ -20,12 +20,12 @@ export default function DownloadPage() {
     else if (platform.includes('win')) setOs('windows');
   }, []);
 
-  const GITHUB_BASE = "https://github.com/konigstudiosdev/liarena-app/releases/latest/download";
+  const GITHUB_BASE = "https://github.com/konigstudiosdev-design/liarena-app/releases/latest/download";
 
   // Estos nombres deben coincidir con lo que genera electron-builder en package.json
   const links = {
-    mac: `${GITHUB_BASE}/Liarena-1.0.1-arm64.dmg`,
-    win: `${GITHUB_BASE}/Liarena-Setup-1.0.1.exe`
+    mac: `${GITHUB_BASE}/Liarena-1.0.1-mac.dmg`,
+    win: `${GITHUB_BASE}/Liarena-1.0.1-win.exe`
   };
 
   return (
