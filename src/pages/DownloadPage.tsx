@@ -20,7 +20,7 @@ export default function DownloadPage() {
     else if (platform.includes('win')) setOs('windows');
   }, []);
 
-  const GITHUB_BASE = "https://github.com/konigstudiosdev-design/liarena-app/releases/latest/download";
+  const GITHUB_BASE = "https://github.com/konigstudiosdev-design/Liarena/releases/latest/download";
 
   // Estos nombres deben coincidir con lo que genera electron-builder en package.json
   const links = {
@@ -63,33 +63,25 @@ export default function DownloadPage() {
                 <Button
                   onClick={() => window.location.href = links.mac}
                   className={cn(
-                    "h-20 px-8 rounded-[32px] shadow-2xl hover:scale-105 active:scale-95 transition-all gap-4 text-sm font-black uppercase tracking-widest group flex-1",
+                    "h-16 px-8 rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all gap-3 text-xs font-black uppercase tracking-widest group flex-1",
                     os === 'mac' ? "bg-primary text-white" : "bg-slate-900 text-white"
                   )}
                 >
-                   <Apple size={24} className="group-hover:rotate-12 transition-transform" />
+                   <Apple size={20} className="group-hover:rotate-12 transition-transform" />
                    Descargar para Mac
                 </Button>
 
                 <Button
                   onClick={() => window.location.href = links.win}
                   className={cn(
-                    "h-20 px-8 rounded-[32px] shadow-2xl hover:scale-105 active:scale-95 transition-all gap-4 text-sm font-black uppercase tracking-widest group flex-1",
+                    "h-16 px-8 rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all gap-3 text-xs font-black uppercase tracking-widest group flex-1",
                     os === 'windows' ? "bg-primary text-white" : "bg-slate-900 text-white"
                   )}
                 >
-                   <Monitor size={24} className="group-hover:rotate-12 transition-transform" />
+                   <Monitor size={20} className="group-hover:rotate-12 transition-transform" />
                    Descargar para Windows
                 </Button>
               </div>
-
-              <Button
-                variant="ghost"
-                onClick={() => window.open("https://github.com/konigstudiosdev/liarena-app/releases/latest", "_blank")}
-                className="h-14 px-8 rounded-[24px] text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-slate-900 mx-auto"
-              >
-                Ver todas las versiones en GitHub <ChevronRight size={14} className="ml-2" />
-              </Button>
            </div>
 
            <div className="grid grid-cols-3 gap-8 pt-10 border-t border-slate-100">

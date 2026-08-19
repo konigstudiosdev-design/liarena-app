@@ -1,7 +1,7 @@
 {
   "name": "liarena-saas",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -52,7 +52,7 @@
       {
         "provider": "github",
         "owner": "konigstudiosdev-design",
-        "repo": "liarena-app"
+        "repo": "Liarena"
       }
     ],
     "directories": {
