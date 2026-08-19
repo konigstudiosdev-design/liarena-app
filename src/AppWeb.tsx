@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { SystemErrorBoundary } from "./components/layout/SystemErrorBoundary";
 import { SecurityGuard } from "./components/auth/SecurityGuard";
@@ -61,7 +61,7 @@ function AppWeb() {
     <SystemErrorBoundary>
       <Toaster />
       <DoctorProvider>
-        <HashRouter>
+        <BrowserRouter>
           <Routes>
             {/* Acceso Directo */}
             <Route path="/" element={<Login />} />
@@ -98,7 +98,7 @@ function AppWeb() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </HashRouter>
+        </BrowserRouter>
       </DoctorProvider>
     </SystemErrorBoundary>
   );
