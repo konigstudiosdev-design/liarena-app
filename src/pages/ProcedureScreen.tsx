@@ -153,7 +153,6 @@ export default function ProcedureScreen() {
     localStorage.setItem('liarena_capture_profiles', JSON.stringify(defaultProfiles));
     return defaultProfiles;
   });
-  const [activeProfileId, setActiveProfileId] = useState('endos');
   const [isRenamingProfile, setIsRenamingProfile] = useState<string | null>(null);
 
   const [cropBox, setCropBox] = useState({ x: 10, y: 10, width: 80, height: 80 });
@@ -893,7 +892,7 @@ export default function ProcedureScreen() {
         </div>
       )}
 
-      <header className="h-20 bg-[#111827] border-b border-white/5 flex items-center justify-between px-10 shrink-0 z-[60]">
+      <header className="h-20 bg-[#111827] border-b border-white/5 flex items-center justify-between px-10 shrink-0 z-[200] relative">
          <div className="flex items-center gap-8">
             <button onClick={goBackToDashboard} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all group flex items-center gap-3">
                <Home size={18} />
@@ -941,14 +940,15 @@ export default function ProcedureScreen() {
          </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative min-h-0 z-10">
 
         {/* CONTENEDOR CENTRAL: VIDEO + OVERLAY IZQUIERDO */}
-        <div className="flex-1 relative overflow-hidden bg-black flex flex-col">
+        <div className="flex-1 relative overflow-hidden bg-[#0A0A0B] flex flex-col min-h-0">
 
           {/* ÁREA DE VIDEO (BASE LAYER - Fixed 100%) */}
-          <main ref={containerRef} className="flex-1 relative z-10 cursor-default isolation-auto overflow-hidden bg-black">
-            <div className="absolute inset-0 flex items-center justify-center">
+          <main className="flex-1 relative z-10 cursor-default isolation-auto overflow-hidden bg-[#0A0A0B] p-6 lg:p-10">
+            <div ref={containerRef} className="w-full h-full relative flex items-center justify-center bg-black rounded-[40px] overflow-hidden border border-white/10 shadow-2xl">
+               <div className="absolute inset-0 flex items-center justify-center">
 
               {/* NO VIDEO SIGNAL OVERLAY (Phase 5) */}
               {signalStatus !== 'active' && (
@@ -1186,7 +1186,7 @@ export default function ProcedureScreen() {
         </aside>
       </div>
 
-      <footer className="h-[68px] bg-white border-t border-slate-100 flex items-center justify-center px-5 shrink-0 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+      <footer className="h-[68px] bg-white border-t border-slate-100 flex items-center justify-center px-5 shrink-0 z-[200] relative shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-6">
            <button onClick={() => setShowHardwareModal(true)} className="flex flex-col items-center justify-center gap-1 w-[56px] h-[52px] rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-150">
              <Settings2 size={18} /><span className="text-[10px] font-bold uppercase tracking-tighter">Ajustes</span>

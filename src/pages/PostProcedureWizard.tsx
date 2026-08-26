@@ -571,14 +571,14 @@ export default function PostProcedureWizard() {
                                   </div>
                                </Card>
                                {isSelected && (
-                                  <div className="px-3 animate-in fade-in slide-in-from-top-2">
+                                  <div className="px-3 animate-in fade-in slide-in-from-top-2 relative z-50">
                                      <div className="relative group/input" onClick={(e) => e.stopPropagation()}>
-                                        <Type size={12} className="absolute left-3 top-3.5 text-slate-300 group-focus-within/input:text-primary transition-colors" />
-                                        <Input
-                                          placeholder="Añadir nota..."
+                                        <Type size={12} className="absolute left-3 top-4 text-slate-300 group-focus-within/input:text-primary transition-colors" />
+                                        <textarea
+                                          placeholder="Añadir nota clínica..."
                                           value={p.comment}
                                           onChange={(e) => handleCommentChange(p.id, e.target.value)}
-                                          className="h-10 pl-9 rounded-xl bg-white border-slate-100 text-[11px] font-bold italic shadow-sm pointer-events-auto"
+                                          className="w-full min-h-[60px] pl-9 pr-4 py-3 rounded-xl bg-white border border-slate-100 text-[11px] font-bold italic shadow-sm focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all resize-none pointer-events-auto"
                                         />
                                      </div>
                                   </div>
