@@ -214,6 +214,12 @@ export default function ProcedureSetup() {
     if (step < 3) setStep(step + 1);
     else {
       setLoading(true);
+
+      // Safety timeout to prevent infinite loading
+      const safetyTimeout = setTimeout(() => {
+        setLoading(false);
+      }, 15000);
+
       try {
         // 1. CARGA ACELERADA EN PARALELO
         const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -342,6 +348,8 @@ export default function ProcedureSetup() {
         toast.error("Fallo al iniciar procedimiento: " + (e.message || "Error de red"));
       } finally {
         setLoading(false);
+        // @ts-ignore
+        if (safetyTimeout) clearTimeout(safetyTimeout);
       }
     }
   };

@@ -25,9 +25,9 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import logo from "../assets/logo.png";
 
 export default function Login() {
-  const logo = "/logo.png";
   const [identifier, setIdentifier] = useState(() => {
     return localStorage.getItem('liarena_remembered_user') || "";
   });

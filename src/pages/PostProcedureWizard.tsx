@@ -211,7 +211,8 @@ export default function PostProcedureWizard() {
         sexo: reportCtx?.patient?.sexo || procedureData?.sexo,
         birthDate: reportCtx?.patient?.fn || procedureData?.birthDate,
         expediente: reportCtx?.patient?.expediente || procedureData?.expediente,
-        procedureType: reportCtx?.study?.type || procedureData?.procedureType
+        procedureType: reportCtx?.study?.type || procedureData?.procedureType,
+        clinicalFontSize // Pasar fuente dinámica
       };
 
       const doc = await pdfGenerator.generateStudyReport(pdfFinalData, orderedSelection);
@@ -259,7 +260,8 @@ export default function PostProcedureWizard() {
         sexo: reportCtx?.patient?.sexo || procedureData?.sexo,
         birthDate: reportCtx?.patient?.fn || procedureData?.birthDate,
         expediente: reportCtx?.patient?.expediente || procedureData?.expediente,
-        procedureType: reportCtx?.study?.type || procedureData?.procedureType
+        procedureType: reportCtx?.study?.type || procedureData?.procedureType,
+        clinicalFontSize // Pasar fuente dinámica
       };
 
       const doc = await pdfGenerator.generateStudyReport(pdfFinalData, orderedSelection);
@@ -429,7 +431,7 @@ export default function PostProcedureWizard() {
   ];
 
   return (
-    <div className="fixed inset-0 bg-[#F4F4F7] flex overflow-hidden font-sans select-none animate-in fade-in duration-500">
+    <div className="fixed inset-0 bg-[#F4F4F7] flex overflow-hidden font-sans animate-in fade-in duration-500">
 
       {/* HUB DE SELECCIÓN DE REPORTE (MULTIPLE STUDIES) */}
       {showHub && (

@@ -334,28 +334,30 @@ export const pdfGenerator = {
       curY = gridTop + (Math.ceil(photoCount / cfg.cols) * cfg.slotHeight) + 5;
 
       // Texto 8
+      const clinicalSize = data.clinicalFontSize ? parseFloat(data.clinicalFontSize) : 12;
+
       doc.setFontSize(9); doc.setTextColor(primaryColor); doc.setFont("helvetica", "bold");
       doc.text("HALLAZGOS", margin, curY); curY += 5;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(darkColor);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(clinicalSize); doc.setTextColor(darkColor);
       const findings8 = doc.splitTextToSize(data.report.findings || "Sin observaciones.", cfg.CONTENT_WIDTH);
 
       for (let i = 0; i < findings8.length; i++) {
-        if (curY > 255) { doc.addPage(); curY = 20; doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(darkColor); }
+        if (curY > 255) { doc.addPage(); curY = 20; doc.setFont("helvetica", "normal"); doc.setFontSize(clinicalSize); doc.setTextColor(darkColor); }
         doc.text(findings8[i], margin, curY, { align: 'justify' });
-        curY += 5.5;
+        curY += (clinicalSize * 0.45);
       }
       curY += 8;
 
       if (curY > 240) { doc.addPage(); curY = 20; }
       doc.setFontSize(9); doc.setTextColor(primaryColor); doc.setFont("helvetica", "bold");
       doc.text("DIAGNÓSTICO", margin, curY); curY += 5;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(darkColor);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(clinicalSize); doc.setTextColor(darkColor);
       const diag8 = doc.splitTextToSize(data.report.diagnosis || "Pendiente.", cfg.CONTENT_WIDTH);
 
       for (let i = 0; i < diag8.length; i++) {
-        if (curY > 255) { doc.addPage(); curY = 20; doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(darkColor); }
+        if (curY > 255) { doc.addPage(); curY = 20; doc.setFont("helvetica", "normal"); doc.setFontSize(clinicalSize); doc.setTextColor(darkColor); }
         doc.text(diag8[i], margin, curY, { align: 'justify' });
-        curY += 5.5;
+        curY += (clinicalSize * 0.45);
       }
 
       // Firma 8

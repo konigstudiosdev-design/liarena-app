@@ -66,7 +66,7 @@ export const wizardService = {
              .single();
 
            if (!retryErr && studyRetry) {
-             await this.logAudit(studyRetry.id, 'STUDY_CREATED', `Estudio iniciado por ${userProfile.role} (Vínculo médico pendiente)`, userProfile.id);
+             this.logAudit(studyRetry.id, 'STUDY_CREATED', `Estudio iniciado por ${userProfile.role} (Vínculo médico pendiente)`, userProfile.id).catch(console.warn);
              return studyRetry.id;
            }
            if (retryErr) throw retryErr;
@@ -75,7 +75,8 @@ export const wizardService = {
       }
 
       if (study) {
-        await this.logAudit(study.id, 'STUDY_CREATED', `Estudio iniciado por ${userProfile.role}`, userProfile.id);
+        // No esperamos el log de auditoría para no bloquear la UI en el setup
+        this.logAudit(study.id, 'STUDY_CREATED', `Estudio iniciado por ${userProfile.role}`, userProfile.id).catch(console.warn);
         return study.id;
       }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "../../lib/utils";
+import logo from "../../assets/logo.png";
 
 interface SplashScreenProps {
   message: string;
@@ -34,7 +35,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ message, progress, i
         <div className="relative">
           <div className="absolute inset-0 bg-primary blur-2xl opacity-10 animate-pulse" />
           <div className="w-28 h-28 bg-white rounded-[40px] flex items-center justify-center relative shadow-2xl shadow-primary/10 p-6 border border-slate-50">
-            <img src="/logo.png" alt="Liarena Logo" className="w-full h-full object-contain" />
+            <img src={logo} alt="Liarena Logo" className="w-full h-full object-contain" />
           </div>
         </div>
 

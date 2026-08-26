@@ -71,6 +71,13 @@ export class LiarenaUpdater {
   }
 
   private setupIPC() {
+    // Remove existing handlers/listeners to avoid duplication or "second handler" errors
+    ipcMain.removeHandler('get-app-version');
+    ipcMain.removeAllListeners('check-for-updates');
+    ipcMain.removeAllListeners('start-download');
+    ipcMain.removeAllListeners('quit-and-install');
+    ipcMain.removeAllListeners('set-procedure-active');
+
     ipcMain.on('check-for-updates', () => {
       autoUpdater.checkForUpdatesAndNotify();
     });

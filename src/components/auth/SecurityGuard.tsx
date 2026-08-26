@@ -40,6 +40,13 @@ export const SecurityGuard = ({ children, allowedRoles }: SecurityGuardProps) =>
 
       if (error) {
         console.error("❌ LIARENA: Error al validar sesión en DB:", error.message);
+        // Si hay error de red/DB pero tenemos sesión de Auth, permitimos continuar
+        // para evitar "sacar" al usuario por fallos temporales de conexión.
+        if (session) {
+           setAuthenticated(true);
+           setLoading(false);
+           return;
+        }
       }
 
       if (!userData) {
