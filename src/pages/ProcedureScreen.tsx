@@ -119,6 +119,10 @@ export default function ProcedureScreen() {
     return localStorage.getItem('liarena_sidebar_collapsed') === 'true';
   });
 
+  const [activeProfileId, setActiveProfileId] = useState(() => {
+    return localStorage.getItem('liarena_active_profile_id') || 'endos';
+  });
+
   const toggleSidebar = () => {
     const newState = !isSidebarCollapsed;
     setIsSidebarCollapsed(newState);
@@ -138,10 +142,15 @@ export default function ProcedureScreen() {
       try {
         const parsed = JSON.parse(saved);
         // Garantizar que 'endos' esté siempre presente
-        if (!parsed.find((p: any) => p.id === 'endos')) return [defaultProfiles[0], ...parsed];
+        if (!parsed.find((p: any) => p.id === 'endos')) {
+           const final = [defaultProfiles[0], ...parsed];
+           localStorage.setItem('liarena_capture_profiles', JSON.stringify(final));
+           return final;
+        }
         return parsed;
       } catch (e) { return defaultProfiles; }
     }
+    localStorage.setItem('liarena_capture_profiles', JSON.stringify(defaultProfiles));
     return defaultProfiles;
   });
   const [activeProfileId, setActiveProfileId] = useState('endos');
@@ -161,8 +170,9 @@ export default function ProcedureScreen() {
       const newBox = { x: profile.x, y: profile.y, width: profile.width, height: profile.height };
       setCropBox(newBox);
       cropBoxStateRef.current = newBox;
+      localStorage.setItem('liarena_active_profile_id', activeProfileId);
     }
-  }, [activeProfileId]);
+  }, [activeProfileId, captureProfiles]);
 
   useEffect(() => {
     cropBoxStateRef.current = cropBox;
@@ -260,12 +270,12 @@ export default function ProcedureScreen() {
       }
     }
 
-    // ASIGNAR PERFIL ENDOSCOPIA COMO PRIORIDAD AL INICIAR
-    const targetId = 'endos';
-    setActiveProfileId(targetId);
-    const endosProfile = captureProfiles.find(p => p.id === targetId);
-    if (endosProfile) {
-      const initialBox = { x: endosProfile.x, y: endosProfile.y, width: endosProfile.width, height: endosProfile.height };
+    // ASIGNAR PERFIL SEGÚN MEMORIA O ENDOSCOPIA
+    const savedProfileId = localStorage.getItem('liarena_active_profile_id') || 'endos';
+    setActiveProfileId(savedProfileId);
+    const initialProfile = captureProfiles.find(p => p.id === savedProfileId) || captureProfiles[0];
+    if (initialProfile) {
+      const initialBox = { x: initialProfile.x, y: initialProfile.y, width: initialProfile.width, height: initialProfile.height };
       setCropBox(initialBox);
       cropBoxStateRef.current = initialBox;
     }
@@ -292,7 +302,10 @@ export default function ProcedureScreen() {
   }
 
   async function startStream(deviceId: string) {
-    if (!deviceId) return;
+    if (!deviceId) {
+       setSignalStatus('none');
+       return;
+    }
 
     // VERIFICACIÓN DE PRE-CARGA (WARM-UP)
     const existingStream = (window as any).stream;
@@ -322,9 +335,11 @@ export default function ProcedureScreen() {
     setSignalStatus('waiting'); setValidationStatus({});
     try {
       const constraints: MediaStreamConstraints = {
-        video: { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60 },
-          // @ts-ignore
-          resizeMode: "none"
+        video: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 60 }
         }
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -354,7 +369,17 @@ export default function ProcedureScreen() {
 
   useEffect(() => {
     localStorage.setItem('liarena_pro_capture_config', JSON.stringify(config));
-    if (config.videoDevice.deviceId) startStream(config.videoDevice.deviceId);
+    if (config.videoDevice.deviceId) {
+       startStream(config.videoDevice.deviceId);
+    } else {
+       // Auto-detectar si no hay ID guardado
+       loadDevices().then(() => {
+          if (proDevices.length > 0 && !config.videoDevice.deviceId) {
+             const firstId = proDevices[0].id;
+             setConfig((prev: any) => ({ ...prev, videoDevice: { ...prev.videoDevice, deviceId: firstId } }));
+          }
+       });
+    }
   }, [config.videoDevice.deviceId]);
 
   useEffect(() => {
@@ -919,11 +944,11 @@ export default function ProcedureScreen() {
       <div className="flex-1 flex overflow-hidden relative">
 
         {/* CONTENEDOR CENTRAL: VIDEO + OVERLAY IZQUIERDO */}
-        <div className="flex-1 relative overflow-hidden bg-black">
+        <div className="flex-1 relative overflow-hidden bg-black flex flex-col">
 
           {/* ÁREA DE VIDEO (BASE LAYER - Fixed 100%) */}
-          <main ref={containerRef} className="w-full h-full flex flex-col relative z-10 cursor-default isolation-auto overflow-hidden">
-            <div className="flex-1 flex items-center justify-center relative bg-black">
+          <main ref={containerRef} className="flex-1 relative z-10 cursor-default isolation-auto overflow-hidden bg-black">
+            <div className="absolute inset-0 flex items-center justify-center">
 
               {/* NO VIDEO SIGNAL OVERLAY (Phase 5) */}
               {signalStatus !== 'active' && (

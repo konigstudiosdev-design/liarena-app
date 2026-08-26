@@ -25,8 +25,7 @@ import { Avatar, Button } from "../../components/ui/index";
 import { supabase } from "../../lib/supabase";
 import { cloudSyncService, SyncStatus } from "../../lib/cloud-sync-service";
 import { cn } from "../../lib/utils";
-
-const logo = "/logo.png";
+import logoImg from "../../assets/logo.png";
 
 interface SidebarItem {
   icon: React.ElementType;
@@ -142,7 +141,7 @@ export const DashboardLayout = ({ role }: { role: "dev" | "admin" | "medic" | "a
         <div className="h-24 flex items-center justify-center px-4 shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg shrink-0 transform transition-transform hover:scale-105 p-2 border border-slate-50">
-              <img src={logo} alt="Logo" className="w-full h-full object-contain" />
+              <img src={logoImg} alt="Logo" className="w-full h-full object-contain" />
             </div>
             {!isSidebarCollapsed && (
               <div className="space-y-0.5 animate-in fade-in slide-in-from-left-2 duration-500">
