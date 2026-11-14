@@ -24,7 +24,7 @@ import {
 import { Card, Button, Badge, Avatar, Input, toast } from "../components/ui/index";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { cn } from "../lib/utils";
+import { cn, formatDoctorName } from "../lib/utils";
 import { pdfGenerator } from "../lib/pdf-generator";
 import { profileService } from "../lib/profile-service";
 import { useDoctor } from "../contexts/DoctorContext";
@@ -45,7 +45,9 @@ export default function MedicDashboard() {
   }, [activeTab]);
 
   async function fetchMyStudies() {
-    setLoading(true);
+    if (studies.length === 0) {
+      setLoading(true);
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -63,7 +65,7 @@ export default function MedicDashboard() {
         .select(`
           *,
           patient:patient_id(*),
-          doctor:doctor_id(nombre, apellidos, role)
+          doctor:doctor_id(nombre, apellidos, role, doctor_profiles(*))
         `);
 
       if (activeTab === 'pending') {
@@ -101,10 +103,8 @@ export default function MedicDashboard() {
 
     setDownloadingId(study.id);
     try {
-      // 1. Obtener perfil completo del médico
       const doctorProfile = await profileService.getDoctorProfile(study.doctor_id);
 
-      // 2. Recuperar hallazgos y fotos desde la auditoría (Snapshot inmutable)
       const { data: auditData } = await supabase
         .from('audit_logs')
         .select('detalles')
@@ -114,15 +114,12 @@ export default function MedicDashboard() {
         .limit(1)
         .maybeSingle();
 
-      // Fallback: Si no hay auditData (estudios antiguos), inicializar snapshot vacío
       const snapshot = auditData ? JSON.parse(auditData.detalles) : { selected_media: [] };
 
-      // 3. Parsear observaciones
       const obs = study.observaciones || "";
       const findings = obs.split('DIAGNÓSTICO:')[0]?.replace('HALLAZGOS:', '').trim() || "Sin observaciones registradas.";
       const diagnosis = obs.split('DIAGNÓSTICO:')[1]?.trim() || "Sin diagnóstico registrado.";
 
-      // 4. Regenerar PDF con datos reales
       const doc = await pdfGenerator.generateStudyReport({
         patientName: `${study.patient?.nombre} ${study.patient?.apellidos}`,
         age: study.patient?.fecha_nacimiento ? calculateAge(study.patient.fecha_nacimiento) : "--",
@@ -132,7 +129,8 @@ export default function MedicDashboard() {
         procedureType: study.tipo_estudio,
         studyId: study.id,
         report: { findings, diagnosis },
-        doctorName: doctorProfile ? `${doctorProfile.nombre} ${doctorProfile.apellidos}` : `${study.doctor?.nombre} ${study.doctor?.apellidos}`,
+        doctorName: doctorProfile ? formatDoctorName(doctorProfile) : formatDoctorName(study.doctor),
+        doctor: doctorProfile || study.doctor,
         signature: doctorProfile?.firma,
         cedulaProf: doctorProfile?.cedula_profesional,
         cedulaEsp: doctorProfile?.cedula_especialidad,
@@ -267,7 +265,7 @@ export default function MedicDashboard() {
                          <Badge variant="primary" className="bg-slate-900 text-white border-none font-black text-[8px] uppercase tracking-widest h-6 px-4 rounded-lg">{study.tipo_estudio}</Badge>
                          <div className="flex items-center gap-2 text-slate-400 font-bold italic text-[11px]">
                            <Stethoscope className="w-3.5 h-3.5" />
-                           <span>DR. {study.doctor ? `${study.doctor.nombre} ${study.doctor.apellidos}` : 'N/A'}</span>
+                           <span>{study.doctor ? formatDoctorName(study.doctor) : 'N/A'}</span>
                          </div>
                          <div className="flex items-center gap-2 text-slate-400 font-bold italic text-[11px]">
                            <Calendar className="w-3.5 h-3.5" />
@@ -293,16 +291,24 @@ export default function MedicDashboard() {
                      {!study.fecha_fin ? (
                         <Button
                           onClick={() => {
+                            localStorage.removeItem('liarena_report_context');
+                            localStorage.removeItem('liarena_active_captures');
+
+                            const fullName = `${study.patient?.nombre || ''} ${study.patient?.apellidos || ''}`.trim() || "PACIENTE";
+                            const docName = study.doctor ? formatDoctorName(study.doctor) : undefined;
+
                             localStorage.setItem('liarena_active_procedure', JSON.stringify({
                               studyId: study.id,
                               patientId: study.patient_id,
                               nombre: study.patient?.nombre,
                               apellidos: study.patient?.apellidos,
-                              patientName: `${study.patient?.nombre} ${study.patient?.apellidos}`,
+                              patientName: fullName,
                               birthDate: study.patient?.fecha_nacimiento,
                               sexo: study.patient?.sexo,
+                              expediente: study.patient?.expediente || `EXP-${study.patient_id?.slice(-6).toUpperCase()}`,
                               procedureType: study.tipo_estudio,
                               doctorId: study.doctor_id,
+                              doctorName: docName,
                               timestamp: study.created_at
                             }));
                             navigate("/procedure/finish");

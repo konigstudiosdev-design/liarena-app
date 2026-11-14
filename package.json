@@ -1,9 +1,7 @@
 {
   "name": "liarena-saas",
   "private": true,
-  "version": "1.0.8",
-  "description": "Plataforma avanzada de captura y gestión endoscópica",
-  "author": "Konig Studios",
+  "version": "1.0.2",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -69,9 +67,7 @@
         "dmg"
       ],
       "icon": "public/logo.png",
-      "category": "public.app-category.medical",
-      "artifactName": "${productName}-${version}-${os}.${ext}",
-      "identity": null
+      "artifactName": "${productName}-${version}-${os}.${ext}"
     },
     "win": {
       "target": "nsis",

@@ -77,7 +77,7 @@ export default function Onboarding() {
           </div>
           <div className="w-1 h-1 rounded-full bg-slate-200" />
           <div className="flex items-center gap-2">
-            <Globe className="w-3 h-3" /> v1.0.4 Clinical Node
+            <Globe className="w-3 h-3" /> v1.0.5 Clinical Node
           </div>
         </div>
       </div>

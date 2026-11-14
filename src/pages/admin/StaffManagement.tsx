@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { Card, Button, Badge, Input, Avatar, toast } from "../../components/ui/index";
 import { supabase } from "../../lib/supabase";
-import { cn } from "../../lib/utils";
+import { cn, formatDoctorName } from "../../lib/utils";
 
 export default function StaffManagement() {
   const [showForm, setShowForm] = useState(false);
@@ -38,6 +38,7 @@ export default function StaffManagement() {
   const [formData, setFormData] = useState({
     nombre: "",
     apellidos: "",
+    titulo_profesional: "",
     especialidad: "",
     cedula_profesional: "",
     cedula_especialidad: "",
@@ -51,7 +52,6 @@ export default function StaffManagement() {
   useEffect(() => {
     fetchStaff();
 
-    // LIARENA REALTIME ENGINE: Escuchar cambios en staff y perfiles
     const channel = supabase
       .channel('staff-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `organization_id=eq.${orgId}` }, () => fetchStaff())
@@ -93,6 +93,7 @@ export default function StaffManagement() {
 
         return {
             ...u,
+            titulo_profesional: prof?.titulo_profesional || prof?.titulo || u.titulo_profesional || "",
             especialidad: prof?.especialidad || (u.role === 'assistant' ? 'Endo Asistente' : 'Médico General'),
             cedula_profesional: prof?.cedula_profesional || 'N/A',
             cedula_especialidad: prof?.cedula_especialidad || 'N/A'
@@ -115,6 +116,7 @@ export default function StaffManagement() {
     setFormData({
       nombre: user.nombre || "",
       apellidos: user.apellidos || "",
+      titulo_profesional: user.titulo_profesional || "",
       especialidad: user.especialidad !== 'Endo Asistente' && user.especialidad !== 'Médico General' && !user.especialidad.includes('No Cargado') ? user.especialidad : "",
       cedula_profesional: user.cedula_profesional !== 'N/A' ? user.cedula_profesional : "",
       cedula_especialidad: user.cedula_especialidad !== 'N/A' ? user.cedula_especialidad : "",
@@ -131,7 +133,7 @@ export default function StaffManagement() {
     setNewRole("doctor");
     setFormError("");
     setFormData({
-      nombre: "", apellidos: "", especialidad: "",
+      nombre: "", apellidos: "", titulo_profesional: "", especialidad: "",
       cedula_profesional: "", cedula_especialidad: "", correo: "",
       username: "", password: ""
     });
@@ -159,6 +161,7 @@ export default function StaffManagement() {
         if (newRole === 'doctor') {
             const { error: dpErr } = await supabase.from('doctor_profiles').upsert({
                 user_id: editingId,
+                titulo_profesional: formData.titulo_profesional,
                 especialidad: formData.especialidad,
                 cedula_profesional: formData.cedula_profesional,
                 cedula_especialidad: formData.cedula_especialidad
@@ -198,6 +201,7 @@ export default function StaffManagement() {
         if (newRole === 'doctor' && newUser) {
           await supabase.from('doctor_profiles').insert({
             user_id: newUser.id,
+            titulo_profesional: formData.titulo_profesional,
             especialidad: formData.especialidad,
             cedula_profesional: formData.cedula_profesional,
             cedula_especialidad: formData.cedula_especialidad
@@ -292,7 +296,9 @@ export default function StaffManagement() {
                        <Avatar fallback={(member.nombre?.[0] || "U")} className="h-16 w-16 text-xl font-black bg-slate-50 ring-4 ring-slate-50 uppercase italic shrink-0" />
                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                             <h3 className="font-bold text-slate-900 text-lg truncate italic uppercase tracking-tighter">{member.nombre} {member.apellidos}</h3>
+                             <h3 className="font-bold text-slate-900 text-lg truncate italic uppercase tracking-tighter">
+                               {member.role === 'assistant' ? `${member.nombre} ${member.apellidos}` : formatDoctorName(member)}
+                             </h3>
                              {member.role === 'assistant' && <ShieldCheck className="w-4 h-4 text-primary shrink-0" />}
                           </div>
                           <Badge variant={member.role === 'assistant' ? "neutral" : "primary"} className={`text-[8px] px-3 h-5 mt-1 border-none font-black uppercase tracking-widest ${member.role === 'assistant' ? "bg-slate-100 text-slate-500" : "bg-primary/5 text-primary"}`}>
@@ -364,7 +370,6 @@ export default function StaffManagement() {
                  {formError && <div className="p-6 bg-danger/5 border border-danger/10 rounded-[32px] flex items-center gap-4 text-danger text-[10px] font-black uppercase tracking-widest italic animate-in shake"><AlertCircle size={48} /><span>{formError}</span></div>}
 
                  <div className="space-y-10">
-                    {/* Role Selector */}
                     {!editingId && (
                         <div className="space-y-4">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Tipo de Usuario</label>
@@ -398,6 +403,7 @@ export default function StaffManagement() {
 
                        {newRole === 'doctor' && (
                            <div className="space-y-6 animate-in fade-in">
+                              <Input placeholder="Título Profesional (Ej: Dr. / Dra. / Dr. A.)" value={formData.titulo_profesional} onChange={(e)=>setFormData({...formData, titulo_profesional: e.target.value})} className="h-14 rounded-2xl bg-slate-50 border-none font-bold italic w-full" />
                               <Input placeholder="Especialidad (Ej: Gastroenterología / Endoscopia)" value={formData.especialidad} onChange={(e)=>setFormData({...formData, especialidad: e.target.value})} className="h-14 rounded-2xl bg-slate-50 border-none font-bold italic w-full" />
                               <div className="grid grid-cols-2 gap-6">
                                  <Input placeholder="Cédula Profesional" value={formData.cedula_profesional} onChange={(e)=>setFormData({...formData, cedula_profesional: e.target.value})} className="h-14 rounded-2xl bg-slate-50 border-none font-bold italic" />

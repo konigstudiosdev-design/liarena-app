@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { pdfGenerator } from "../lib/pdf-generator";
 import { profileService } from "../lib/profile-service";
-import { cn } from "../lib/utils";
+import { cn, formatDoctorName } from "../lib/utils";
 
 export default function AssistantDashboard() {
   const navigate = useNavigate();
@@ -66,7 +66,7 @@ export default function AssistantDashboard() {
         .select(`
           *,
           patient:patient_id(*),
-          doctor:doctor_id(nombre, apellidos, role)
+          doctor:doctor_id(nombre, apellidos, role, doctor_profiles(*))
         `)
         .eq('organization_id', userProfile?.organization_id)
         .is('deleted_at', null)
@@ -117,7 +117,8 @@ export default function AssistantDashboard() {
         procedureType: study.tipo_estudio,
         studyId: study.id,
         report: { findings, diagnosis },
-        doctorName: doctorProfile ? `${doctorProfile.nombre} ${doctorProfile.apellidos}` : `${study.doctor?.nombre} ${study.doctor?.apellidos}`,
+        doctorName: doctorProfile ? formatDoctorName(doctorProfile) : formatDoctorName(study.doctor),
+        doctor: doctorProfile || study.doctor,
         signature: doctorProfile?.firma,
         cedulaProf: doctorProfile?.cedula_profesional,
         cedulaEsp: doctorProfile?.cedula_especialidad,
@@ -278,7 +279,7 @@ export default function AssistantDashboard() {
                          <Badge variant="primary" className="bg-slate-900 text-white border-none font-black text-[8px] uppercase tracking-widest h-6 px-4 rounded-lg">{study.tipo_estudio}</Badge>
                          <div className="flex items-center gap-2 text-slate-400 font-bold italic text-[11px]">
                            <Stethoscope className="w-3.5 h-3.5" />
-                           <span>DR. {study.doctor ? `${study.doctor.nombre} ${study.doctor.apellidos}` : 'POR ASIGNAR'}</span>
+                           <span>{study.doctor ? formatDoctorName(study.doctor) : 'POR ASIGNAR'}</span>
                          </div>
                          <div className="flex items-center gap-2 text-slate-400 font-bold italic text-[11px]">
                            <Clock className="w-3.5 h-3.5" />
@@ -311,16 +312,24 @@ export default function AssistantDashboard() {
                   ) : (
                      <button
                         onClick={() => {
+                          localStorage.removeItem('liarena_report_context');
+                          localStorage.removeItem('liarena_active_captures');
+
+                          const fullName = `${study.patient?.nombre || ''} ${study.patient?.apellidos || ''}`.trim() || "PACIENTE";
+                          const docName = study.doctor ? formatDoctorName(study.doctor) : undefined;
+
                           localStorage.setItem('liarena_active_procedure', JSON.stringify({
                             studyId: study.id,
                             patientId: study.patient_id,
                             nombre: study.patient?.nombre,
                             apellidos: study.patient?.apellidos,
-                            patientName: `${study.patient?.nombre} ${study.patient?.apellidos}`,
+                            patientName: fullName,
                             birthDate: study.patient?.fecha_nacimiento,
                             sexo: study.patient?.sexo,
+                            expediente: study.patient?.expediente || `EXP-${study.patient_id?.slice(-6).toUpperCase()}`,
                             procedureType: study.tipo_estudio,
                             doctorId: study.doctor_id,
+                            doctorName: docName,
                             timestamp: study.created_at
                           }));
                           navigate(`/procedure/active`);

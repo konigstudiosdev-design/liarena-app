@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { profileService, DoctorProfileData } from '../lib/profile-service';
 
 interface DoctorContextType {
@@ -18,6 +18,8 @@ export const DoctorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const syncDoctor = useCallback(async (doctorId: string) => {
     if (!doctorId) return;
+    if (doctor?.id === doctorId) return; // Avoid redundant sync if already loaded
+
     setLoading(true);
     setError(null);
     try {
@@ -33,7 +35,7 @@ export const DoctorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [doctor]);
 
   const clearDoctor = useCallback(() => {
     setDoctor(null);

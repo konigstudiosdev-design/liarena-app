@@ -10,7 +10,6 @@ import { supabase } from "./lib/supabase";
 // Pages
 import Login from "./pages/Login";
 import OrgDashboard from "./pages/OrgDashboard";
-import MedicDashboard from "./pages/MedicDashboard";
 import AssistantDashboard from "./pages/AssistantDashboard";
 import Patients from "./pages/Patients";
 import Profile from "./pages/Profile";
@@ -27,6 +26,11 @@ import Admin from "./pages/Admin";
 import SetupStaff from "./pages/admin/SetupStaff";
 import StaffManagement from "./pages/admin/StaffManagement";
 import AdminProfile from "./pages/admin/AdminProfile";
+import ImportReportWizard from "./pages/ImportReportWizard";
+
+// Liarena Web Portal Pages
+import DocumentPortal from "./pages/web/DocumentPortal";
+import DocumentEditor from "./pages/web/DocumentEditor";
 
 import { Toaster } from "./components/ui";
 
@@ -88,13 +92,28 @@ function AppWeb() {
               <Route path="/org/profile" element={<AdminProfile />} />
             </Route>
 
-            {/* Doctor Workspace */}
+            {/* Endo Assistant Workspace */}
+            <Route element={<SecurityGuard allowedRoles={['assistant']}><DashboardLayout role="assistant" /></SecurityGuard>}>
+              <Route path="/assistant" element={<AssistantDashboard />} />
+              <Route path="/assistant/studies" element={<DocumentPortal defaultTab="all" />} />
+              <Route path="/assistant/patients" element={<Patients />} />
+              <Route path="/assistant/profile" element={<Profile />} />
+            </Route>
+
+            {/* Doctor Workspace - Liarena Web Documentary Portal */}
             <Route element={<SecurityGuard allowedRoles={['doctor', 'medic']}><DashboardLayout role="medic" /></SecurityGuard>}>
-              <Route path="/medic" element={<MedicDashboard />} />
+              <Route path="/medic" element={<DocumentPortal defaultTab="dashboard" />} />
+              <Route path="/documents" element={<DocumentPortal defaultTab="all" />} />
+              <Route path="/documents/pending" element={<DocumentPortal defaultTab="pending" />} />
+              <Route path="/documents/completed" element={<DocumentPortal defaultTab="completed" />} />
+              <Route path="/documents/editor/:studyId" element={<DocumentEditor />} />
               <Route path="/patients" element={<Patients />} />
-              <Route path="/reports" element={<MedicDashboard />} />
+              <Route path="/reports" element={<DocumentPortal defaultTab="all" />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
+
+            {/* Document Import Flow */}
+            <Route path="/import-report" element={<SecurityGuard><ImportReportWizard /></SecurityGuard>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

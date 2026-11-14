@@ -21,7 +21,23 @@ import Profile from "./pages/Profile";
 import Onboarding from "./pages/onboarding/Onboarding";
 import CreateOrg from "./pages/onboarding/CreateOrg";
 import JoinOrg from "./pages/onboarding/JoinOrg";
+import SetupStaff from "./pages/admin/SetupStaff";
 import StaffManagement from "./pages/admin/StaffManagement";
+import AdminProfile from "./pages/admin/AdminProfile";
+
+// Dev Pages
+import DeveloperDashboard from "./pages/DeveloperDashboard";
+import OrganizationList from "./pages/dev/OrganizationList";
+import AdminManagement from "./pages/dev/AdminManagement";
+import DevInfrastructure from "./pages/dev/DevInfrastructure";
+import SystemControl from "./pages/dev/SystemControl";
+import DevSettings from "./pages/dev/DevSettings";
+import UserList from "./pages/dev/UserList";
+import DevProfile from "./pages/dev/DevProfile";
+
+// Web Portal Pages
+import DocumentPortal from "./pages/web/DocumentPortal";
+import DocumentEditor from "./pages/web/DocumentEditor";
 
 import { Toaster } from "./components/ui/index";
 
@@ -61,6 +77,27 @@ function App() {
             <Route path="/onboarding/create" element={<CreateOrg />} />
             <Route path="/onboarding/join" element={<JoinOrg />} />
 
+            {/* Developer Workspace */}
+            <Route element={<SecurityGuard allowedRoles={['dev', 'developer']}><DashboardLayout role="dev" /></SecurityGuard>}>
+              <Route path="/dev" element={<DeveloperDashboard />} />
+              <Route path="/dev/organizations" element={<OrganizationList />} />
+              <Route path="/dev/admins" element={<AdminManagement />} />
+              <Route path="/dev/infrastructure" element={<DevInfrastructure />} />
+              <Route path="/dev/system" element={<SystemControl />} />
+              <Route path="/dev/settings" element={<DevSettings />} />
+              <Route path="/dev/doctors" element={<UserList />} />
+              <Route path="/dev/profile" element={<DevProfile />} />
+            </Route>
+
+            {/* Admin Workspace */}
+            <Route element={<SecurityGuard allowedRoles={['organization_admin', 'admin']}><DashboardLayout role="admin" /></SecurityGuard>}>
+              <Route path="/org" element={<OrgDashboard />} />
+              <Route path="/org/setup-staff" element={<SetupStaff />} />
+              <Route path="/org/staff" element={<StaffManagement />} />
+              <Route path="/org/settings" element={<Admin />} />
+              <Route path="/org/profile" element={<AdminProfile />} />
+            </Route>
+
             {/* Endo Assistant Workspace */}
             <Route element={<SecurityGuard allowedRoles={['assistant']}><DashboardLayout role="assistant" /></SecurityGuard>}>
               <Route path="/assistant" element={<AssistantDashboard />} />
@@ -73,6 +110,10 @@ function App() {
             {/* Medic Workspace */}
             <Route element={<SecurityGuard allowedRoles={['doctor', 'medic']}><DashboardLayout role="medic" /></SecurityGuard>}>
               <Route path="/medic" element={<MedicDashboard />} />
+              <Route path="/documents" element={<DocumentPortal defaultTab="all" />} />
+              <Route path="/documents/pending" element={<DocumentPortal defaultTab="pending" />} />
+              <Route path="/documents/completed" element={<DocumentPortal defaultTab="completed" />} />
+              <Route path="/documents/editor/:studyId" element={<DocumentEditor />} />
               <Route path="/patients" element={<Patients />} />
               <Route path="/reports" element={<MedicDashboard />} />
               <Route path="/profile" element={<Profile />} />

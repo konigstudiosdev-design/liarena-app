@@ -132,21 +132,27 @@ ipcMain.handle('ensure-study-folder', async (_, { patientPath, studyType }) => {
   }
 });
 
-ipcMain.handle('save-local-file', async (_, { filePath, base64Data, isBuffer = false }) => {
+ipcMain.handle('save-local-file', async (_, { filePath, base64Data, buffer, isBuffer = false }) => {
   try {
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    // Sobrescribimos el archivo si ya existe para evitar duplicados innecesarios
-    // y mantener solo la versión más reciente del reporte o captura.
-    if (isBuffer) {
-      const buffer = Buffer.from(base64Data, 'base64');
-      fs.writeFileSync(filePath, buffer);
+    if (buffer) {
+      // Buffer o Uint8Array directo (videos MP4/WebM masivos)
+      const fileBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+      fs.writeFileSync(filePath, fileBuffer);
+    } else if (isBuffer && base64Data) {
+      // Base64 string (fotografías JPG y reportes PDF)
+      const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
+      const fileBuffer = Buffer.from(cleanBase64, 'base64');
+      fs.writeFileSync(filePath, fileBuffer);
     } else {
-      fs.writeFileSync(filePath, base64Data);
+      // Texto plano (archivos metadata.json)
+      fs.writeFileSync(filePath, base64Data || '');
     }
     return { success: true, path: filePath };
   } catch (error: any) {
+    console.error("IPC save-local-file Error:", error);
     return { success: false, error: error.message };
   }
 });

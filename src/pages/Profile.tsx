@@ -18,6 +18,7 @@ import {
 import { Button, Card, Input, Avatar, Badge, toast } from "../components/ui/index";
 import { supabase } from "../lib/supabase";
 import { useDoctor } from "../contexts/DoctorContext";
+import { profileService } from "../lib/profile-service";
 import SignatureCanvas from "react-signature-canvas";
 
 export default function Profile() {
@@ -28,6 +29,7 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     name: "",
     apellidos: "",
+    titulo_profesional: "",
     specialty: "",
     cedulaProf: "",
     cedulaEsp: "",
@@ -65,6 +67,7 @@ export default function Profile() {
       setFormData({
         name: data.nombre || "",
         apellidos: data.apellidos || "",
+        titulo_profesional: profile?.titulo_profesional || profile?.titulo || data.titulo_profesional || "",
         specialty: profile?.especialidad || "",
         cedulaProf: profile?.cedula_profesional || "",
         cedulaEsp: profile?.cedula_especialidad || "",
@@ -115,6 +118,7 @@ export default function Profile() {
             .from('doctor_profiles')
             .upsert({
               user_id: userRecord.id,
+              titulo_profesional: formData.titulo_profesional,
               especialidad: formData.specialty,
               cedula_profesional: formData.cedulaProf,
               cedula_especialidad: formData.cedulaEsp,
@@ -124,7 +128,6 @@ export default function Profile() {
 
           if (profError) {
             console.warn("LIARENA Audit: Clinical Profile RLS Restriction.", profError);
-            // Si el error es de RLS, notificamos pero no bloqueamos el flujo básico
             if (profError.code === '42501') {
               toast.warning("Datos profesionales guardados localmente. Contacte a soporte para sincronización de base de datos.");
             } else {
@@ -137,7 +140,8 @@ export default function Profile() {
         setSignatureUrl(customSignature);
       }
 
-      // 3. Update Global Context
+      // 3. Clear Cache and Update Global Context
+      profileService.clearCache(userRecord.id);
       await syncDoctor(userRecord.id);
 
       toast.success("✅ Cambios guardados correctamente");
@@ -302,6 +306,15 @@ export default function Profile() {
 
                     {isClinical && (
                         <>
+                            <div className="space-y-2 md:col-span-2">
+                               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Título Profesional</label>
+                               <Input
+                                value={formData.titulo_profesional}
+                                onChange={(e) => setFormData({...formData, titulo_profesional: e.target.value})}
+                                className="h-12 bg-slate-50 border-none rounded-xl font-bold italic text-slate-700"
+                                placeholder="Ej. Dr. / Dra. / Dr. A."
+                               />
+                            </div>
                             <div className="space-y-2 md:col-span-2">
                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Especialidad Completa</label>
                                <Input

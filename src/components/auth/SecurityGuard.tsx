@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { Loader2, ShieldAlert, Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { Card, Button } from "../ui/index";
 
 interface SecurityGuardProps {
@@ -9,34 +9,88 @@ interface SecurityGuardProps {
   allowedRoles?: string[];
 }
 
+interface CachedSession {
+  authUserId: string;
+  role: string;
+  organizationId: string | null;
+  timestamp: number;
+}
+
+let cachedSession: CachedSession | null = null;
+
+export function clearSecurityGuardCache() {
+  cachedSession = null;
+}
+
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') {
+    cachedSession = null;
+  }
+});
+
+function withTimeout<T>(promise: PromiseLike<T>, ms = 8000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Timeout session check"));
+    }, ms);
+
+    Promise.resolve(promise).then(
+      (res) => { clearTimeout(timer); resolve(res); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
 export const SecurityGuard = ({ children, allowedRoles }: SecurityGuardProps) => {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(() => !cachedSession);
+  const [authenticated, setAuthenticated] = useState(() => !!cachedSession);
+  const [userRole, setUserRole] = useState<string | null>(() => cachedSession?.role || null);
   const location = useLocation();
+  const isValidatingRef = useRef(false);
 
   useEffect(() => {
     validateSession();
   }, [location.pathname]);
 
   async function validateSession() {
-    setLoading(true);
+    const now = Date.now();
+    const isCacheValid = cachedSession && (now - cachedSession.timestamp < 15 * 60 * 1000);
+
+    if (isCacheValid) {
+      setUserRole(cachedSession!.role);
+      setAuthenticated(true);
+      if (loading) setLoading(false);
+      return;
+    }
+
+    if (isValidatingRef.current) return;
+    isValidatingRef.current = true;
+
+    if (!cachedSession) {
+      setLoading(true);
+    }
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const sessionRes = await withTimeout(supabase.auth.getSession(), 6000);
+      const session = sessionRes.data?.session;
 
       if (!session) {
+        cachedSession = null;
         setAuthenticated(false);
+        setUserRole(null);
         setLoading(false);
         return;
       }
 
-      // Validar rol real desde la base de datos
       console.log("🛡️ LIARENA: Validando rol para usuario:", session.user.id);
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('role, organization_id')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle(); // Usar maybeSingle para evitar error de 0 filas
+      const { data: userData, error } = await withTimeout(
+        supabase
+          .from('users')
+          .select('role, organization_id')
+          .eq('auth_user_id', session.user.id)
+          .maybeSingle(),
+        6000
+      );
 
       if (error) {
         console.error("❌ LIARENA: Error al validar sesión en DB:", error.message);
@@ -49,27 +103,39 @@ export const SecurityGuard = ({ children, allowedRoles }: SecurityGuardProps) =>
         }
       }
 
+      let roleToSet: string | null = null;
       if (!userData) {
         console.warn("⚠️ LIARENA: Perfil no encontrado en tabla 'users'.");
-        // Manejo especial para Developer Root si no está en la tabla users
         if (session.user.email === 'konigstudios.dev@gmail.com') {
-           setUserRole('dev');
-           setAuthenticated(true);
-        } else {
-           // Si no es dev y no hay perfil, forzar re-login
-           setAuthenticated(false);
+           roleToSet = 'dev';
         }
       } else {
-        setUserRole(userData.role);
-        setAuthenticated(true);
-        // Asegurar que el orgId esté en sync
+        roleToSet = userData.role;
         if (userData.organization_id) {
           localStorage.setItem('liarena_org_id', userData.organization_id);
         }
       }
+
+      if (roleToSet) {
+        cachedSession = {
+          authUserId: session.user.id,
+          role: roleToSet,
+          organizationId: userData?.organization_id || null,
+          timestamp: Date.now()
+        };
+        setUserRole(roleToSet);
+        setAuthenticated(true);
+      } else {
+        cachedSession = null;
+        setAuthenticated(false);
+      }
     } catch (e) {
-      setAuthenticated(false);
+      console.warn("SecurityGuard Session Check Timeout/Fail:", e);
+      if (!cachedSession) {
+        setAuthenticated(false);
+      }
     } finally {
+      isValidatingRef.current = false;
       setLoading(false);
     }
   }
@@ -89,8 +155,15 @@ export const SecurityGuard = ({ children, allowedRoles }: SecurityGuardProps) =>
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // Si hay roles permitidos y el usuario no tiene el rol, mostrar error elegante
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole) && userRole !== 'dev') {
+  const normalizedAllowed = allowedRoles ? allowedRoles.map(r => r.toLowerCase().trim()) : null;
+  const normalizedUserRole = (userRole || "").toLowerCase().trim();
+
+  const isRoleAllowed = !normalizedAllowed ||
+    normalizedAllowed.includes(normalizedUserRole) ||
+    normalizedUserRole === 'dev' ||
+    normalizedUserRole === 'developer';
+
+  if (!isRoleAllowed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
         <Card className="max-w-md w-full p-12 text-center space-y-8 rounded-[48px] border-none shadow-2xl bg-white animate-in zoom-in duration-500">

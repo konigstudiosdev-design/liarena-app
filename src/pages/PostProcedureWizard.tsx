@@ -31,7 +31,7 @@ import {
   Mail,
   Award
 } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn, formatDoctorName } from "../lib/utils";
 import { Button, Badge, Card, Avatar, toast, Input } from "../components/ui/index";
 import { wizardService } from "../lib/wizard-service";
 import { localRecordService } from "../lib/local-record-service";
@@ -99,10 +99,6 @@ export default function PostProcedureWizard() {
   ];
 
   useEffect(() => {
-    const ctx = localStorage.getItem('liarena_report_context');
-    if (ctx) {
-      setReportCtx(JSON.parse(ctx));
-    }
     fetchSessionAndData();
   }, []);
 
@@ -115,15 +111,16 @@ export default function PostProcedureWizard() {
     // Recuperar rol para navegación inteligente
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (authUser) {
-      const { data: profile } = await supabase.from('users').select('role').eq('auth_user_id', authUser.id).single();
+      const { data: profile } = await supabase.from('users').select('role').eq('auth_user_id', authUser.id).maybeSingle();
       if (profile) setUserRole(profile.role);
     }
 
     if (sessionListStr) {
-      const list = JSON.parse(sessionListStr);
-      setSessionStudies(list);
-      // Si hay más de un estudio en la sesión, mostramos el Hub
-      if (list.length > 1) setShowHub(true);
+      try {
+        const list = JSON.parse(sessionListStr);
+        setSessionStudies(list);
+        if (list.length > 1) setShowHub(true);
+      } catch (e) {}
     }
 
     if (data) {
@@ -131,36 +128,109 @@ export default function PostProcedureWizard() {
       setProcedureData(parsed);
       if (parsed.studyId) setStudyId(parsed.studyId);
 
-      // Si no hay contexto de reporte, intentamos reconstruirlo para compatibilidad
-      if (!ctx) {
-        const reconstructedCtx = {
+      // 1. Obtener perfil del médico específico para este estudio
+      let doctorProfileData = parsed.doctorProfile;
+      if (parsed.doctorId && (!doctorProfileData || !doctorProfileData.especialidad)) {
+        doctorProfileData = await profileService.getDoctorProfile(parsed.doctorId);
+      }
+
+      // 2. Verificar que el contexto pertenezca exactamente a ESTE paciente y ESTE estudio
+      let existingCtx: any = null;
+      if (ctx) {
+        try { existingCtx = JSON.parse(ctx); } catch (e) {}
+      }
+
+      const isMatchingCtx = existingCtx &&
+        existingCtx.study?.id === parsed.studyId &&
+        existingCtx.patient?.id === parsed.patientId;
+
+      let freshContext = existingCtx;
+
+      if (!isMatchingCtx) {
+        const pName = parsed.patientName || `${parsed.nombre || ''} ${parsed.apellidos || ''}`.trim() || "PACIENTE";
+        const dName = formatDoctorName(doctorProfileData || parsed.doctorName || "MÉDICO RESPONSABLE");
+
+        freshContext = {
           doctor: {
-            nombreFull: parsed.doctorName || "DR. ASIGNADO",
-            especialidad: parsed.doctorProfile?.especialidad || "Gastroenterología / Hepatología",
-            cedulaProf: parsed.doctorProfile?.cedula_profesional || "---",
-            cedulaEsp: parsed.doctorProfile?.cedula_especialidad || "---",
-            signature: parsed.doctorProfile?.firma
+            id: parsed.doctorId,
+            nombreFull: dName,
+            especialidad: doctorProfileData?.especialidad || "Especialista",
+            cedulaProf: doctorProfileData?.cedula_profesional || "---",
+            cedulaEsp: doctorProfileData?.cedula_especialidad || "---",
+            signature: doctorProfileData?.firma
           },
           patient: {
-            nombreFull: parsed.patientName || "PACIENTE",
-            expediente: parsed.expediente || "---",
+            id: parsed.patientId,
+            nombreFull: pName,
+            expediente: parsed.expediente || (parsed.patientId ? `EXP-${parsed.patientId.slice(-6).toUpperCase()}` : "---"),
             edad: parsed.age || calculateAge(parsed.birthDate),
             fn: parsed.birthDate,
             sexo: parsed.sexo
           },
           location: {
             room: parsed.roomName || "SALA DE ENDOSCOPIA",
-            logo: parsed.doctorProfile?.organization?.logo
+            logo: doctorProfileData?.organization?.logo
           },
           study: {
             type: parsed.procedureType,
             id: parsed.studyId
           }
         };
-        setReportCtx(reconstructedCtx);
+        localStorage.setItem('liarena_report_context', JSON.stringify(freshContext));
       }
 
-      const photoList = captures ? JSON.parse(captures) : [];
+      setReportCtx(freshContext);
+
+      // 3. Carga estricta de fotografías asignadas a este estudio
+      let photoList: any[] = [];
+
+      let localCapturesData: any = null;
+      if (captures) {
+        try {
+          const capObj = JSON.parse(captures);
+          if (Array.isArray(capObj)) {
+            localCapturesData = capObj;
+          } else if (capObj && capObj.studyId === parsed.studyId) {
+            localCapturesData = capObj.captures;
+          }
+        } catch (e) {}
+      }
+
+      if (localCapturesData && localCapturesData.length > 0) {
+        photoList = localCapturesData;
+      } else if (parsed.studyId) {
+        const { data: mediaRes } = await supabase
+          .from('multimedia')
+          .select('*')
+          .eq('study_id', parsed.studyId);
+
+        if (mediaRes && mediaRes.length > 0) {
+          photoList = mediaRes.map((m: any) => ({
+            id: m.id,
+            image: m.file_url,
+            comment: ""
+          }));
+        } else {
+          const { data: auditRes } = await supabase
+            .from('audit_logs')
+            .select('detalles')
+            .eq('study_id', parsed.studyId)
+            .order('created_at', { ascending: false });
+
+          if (auditRes && auditRes.length > 0) {
+            for (const log of auditRes) {
+              try {
+                const parsedDet = typeof log.detalles === 'string' ? JSON.parse(log.detalles) : log.detalles;
+                if (parsedDet?.selected_media && Array.isArray(parsedDet.selected_media)) {
+                  photoList = parsedDet.selected_media;
+                  break;
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      }
+
       setPhotos(photoList.map((p: any) => ({ ...p, comment: p.comment || "" })));
     }
   }
@@ -200,7 +270,7 @@ export default function PostProcedureWizard() {
         report: reportData,
         doctor: {
           ...reportCtx?.doctor,
-          nombreFull: reportCtx?.doctor?.nombreFull || procedureData?.doctorName,
+          nombreFull: formatDoctorName(reportCtx?.doctor || procedureData?.doctorProfile || procedureData?.doctorName),
           especialidad: reportCtx?.doctor?.especialidad || procedureData?.doctorProfile?.especialidad,
           cedulaProf: reportCtx?.doctor?.cedulaProf || procedureData?.doctorProfile?.cedula_profesional,
           cedulaEsp: reportCtx?.doctor?.cedulaEsp || procedureData?.doctorProfile?.cedula_especialidad,
@@ -249,7 +319,7 @@ export default function PostProcedureWizard() {
         report: reportData,
         doctor: {
           ...reportCtx?.doctor,
-          nombreFull: reportCtx?.doctor?.nombreFull || procedureData?.doctorName,
+          nombreFull: formatDoctorName(reportCtx?.doctor || procedureData?.doctorProfile || procedureData?.doctorName),
           especialidad: reportCtx?.doctor?.especialidad || procedureData?.doctorProfile?.especialidad,
           cedulaProf: reportCtx?.doctor?.cedulaProf || procedureData?.doctorProfile?.cedula_profesional,
           cedulaEsp: reportCtx?.doctor?.cedulaEsp || procedureData?.doctorProfile?.cedula_especialidad,
@@ -276,8 +346,30 @@ export default function PostProcedureWizard() {
         // Cloud Sync del Reporte (Background)
         cloudSyncService.enqueue(studyId, pdfBlob, 'Reporte.pdf', 'report');
 
-        if (activeProc.localStudyPath) {
-          await localRecordService.saveReportPDF(activeProc.localStudyPath, pdfBlob);
+        let targetStudyPath = activeProc.localStudyPath;
+        if (!targetStudyPath && reportCtx?.patient?.nombreFull) {
+          const patientFolderName = reportCtx.patient.nombreFull;
+          const localPatientPath = await localRecordService.ensurePatientFolder(patientFolderName, reportCtx.patient.fn || "");
+          if (localPatientPath) {
+            targetStudyPath = await localRecordService.ensureStudyFolder(localPatientPath, reportCtx.study?.type || "Endoscopia");
+          }
+        }
+
+        if (targetStudyPath) {
+          await localRecordService.saveReportPDF(targetStudyPath, pdfBlob);
+
+          // Sincronizar también las fotos de este reporte a la carpeta local Fotos/
+          for (let i = 0; i < photos.length; i++) {
+            await localRecordService.saveCapture(targetStudyPath, i + 1, photos[i].image);
+          }
+
+          // Guardar metadatos finales del reporte
+          await localRecordService.saveMetadata(targetStudyPath, {
+            ...reportCtx,
+            studyId: studyId,
+            photosCount: photos.length,
+            finalizedAt: new Date().toISOString()
+          });
         }
 
         // DESPACHO AUTOMÁTICO AL MÉDICO
@@ -564,9 +656,9 @@ export default function PostProcedureWizard() {
                           const idx = selectionOrder.indexOf(p.id) + 1;
                           return (
                             <div key={p.id} className="space-y-3 group">
-                               <Card onClick={() => handleTogglePhoto(p.id)} className={cn("relative rounded-[36px] overflow-hidden cursor-pointer transition-all duration-300 border-none", isSelected ? "ring-4 ring-primary ring-offset-4 scale-[0.98]" : "opacity-60 grayscale hover:opacity-100 hover:grayscale-0 shadow-sm hover:shadow-xl")}>
+                               <Card onClick={() => handleTogglePhoto(p.id)} className={cn("relative rounded-[36px] overflow-hidden cursor-pointer transition-all duration-300 border border-slate-100 shadow-sm hover:shadow-xl", isSelected ? "ring-4 ring-primary ring-offset-2 scale-[0.98] shadow-lg shadow-primary/10" : "hover:scale-[1.01]")}>
                                   <img src={p.image} className="w-full h-auto block" style={{ objectFit: 'contain' }} />
-                                  <div className={cn("absolute top-4 right-4 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg", isSelected ? "bg-primary text-white" : "bg-white/90 text-slate-300")}>
+                                  <div className={cn("absolute top-4 right-4 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg pointer-events-none z-10", isSelected ? "bg-primary text-white" : "bg-white/90 text-slate-400")}>
                                      {isSelected ? idx : <Plus size={20} />}
                                   </div>
                                </Card>

@@ -25,7 +25,7 @@ import {
   X
 } from "lucide-react";
 import { Card, Button, Badge, Avatar, Input, toast } from "../components/ui/index";
-import { cn } from "../lib/utils";
+import { cn, formatDoctorName } from "../lib/utils";
 import { supabase } from "../lib/supabase";
 import { pdfGenerator } from "../lib/pdf-generator";
 import { profileService, DoctorProfileData } from "../lib/profile-service";
@@ -367,13 +367,13 @@ export default function ImportReportWizard() {
     let signature = null;
 
     if (doctorInputMode === 'selection') {
-      docName = `${doctorData.nombre} ${doctorData.apellidos}`;
+      docName = formatDoctorName(doctorData);
       specialty = doctorData.doctorProfile?.especialidad || "";
       cp = doctorData.doctorProfile?.cedula_profesional || "---";
       ce = doctorData.doctorProfile?.cedula_especialidad || "---";
       signature = doctorData.doctorProfile?.firma;
     } else {
-      docName = `${manualDoctor.nombre} ${manualDoctor.apellidos}`;
+      docName = formatDoctorName(manualDoctor);
       specialty = manualDoctor.especialidad;
       cp = manualDoctor.cedulaProf;
       ce = manualDoctor.cedulaEsp || "---";
@@ -404,6 +404,88 @@ export default function ImportReportWizard() {
     };
   };
 
+  const savePatientAndPhotosLocally = async (showToast = true) => {
+    if (!patientData.nombre || !patientData.birthDate) {
+      if (showToast) toast.error("Ingrese al menos el nombre y la fecha de nacimiento del paciente.");
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      // 1. Sincronizar o crear paciente en Supabase
+      let finalPatientId = patientData.id;
+      if (orgId && !finalPatientId) {
+        const { data: newPatient, error: pErr } = await supabase
+          .from('patients')
+          .insert({
+            organization_id: orgId,
+            nombre: patientData.nombre.trim(),
+            apellidos: (patientData.apellidos || "").trim(),
+            fecha_nacimiento: patientData.birthDate,
+            sexo: patientData.sexo || "M",
+            expediente: patientData.expediente || null,
+            curp: patientData.curp || null,
+            telefono: patientData.telefono || null,
+            correo: patientData.correo || null,
+            observaciones: patientData.observaciones || null
+          })
+          .select('id')
+          .single();
+
+        if (!pErr && newPatient) {
+          finalPatientId = newPatient.id;
+          setPatientData(prev => ({ ...prev, id: newPatient.id }));
+        }
+      }
+
+      // 2. Crear carpetas locales e importar las imágenes
+      const patientFolderName = `${patientData.nombre} ${patientData.apellidos}`.trim();
+      const localPatientPath = await localRecordService.ensurePatientFolder(patientFolderName, patientData.birthDate);
+
+      if (localPatientPath) {
+        const localStudyPath = await localRecordService.ensureStudyFolder(localPatientPath, studyData.type || 'Endoscopia');
+
+        if (localStudyPath) {
+          // Guardar fotos cargadas en la carpeta 'Fotos' del estudio local
+          for (let i = 0; i < photos.length; i++) {
+            await localRecordService.saveCapture(localStudyPath, i + 1, photos[i].image);
+          }
+
+          // Guardar metadatos locales
+          const pdfFinalData = getPdfData();
+          await localRecordService.saveMetadata(localStudyPath, {
+            ...pdfFinalData,
+            patientId: finalPatientId,
+            photosCount: photos.length,
+            imported: true,
+            importDate: new Date().toISOString()
+          });
+        }
+      }
+
+      // 3. Registrar el estudio en Supabase si se cuenta con paciente y sede
+      if (finalPatientId && orgId) {
+        const docId = doctorInputMode === 'selection' && doctorData ? doctorData.id : null;
+        await wizardService.createStudyRecord({
+          patientId: finalPatientId,
+          doctorId: docId,
+          procedureType: studyData.type || 'Endoscopia'
+        }, photos);
+      }
+
+      if (showToast) {
+        toast.success(`Carpeta local creada y ${photos.length} imágenes guardadas para ${patientFolderName}.`);
+      }
+      return true;
+    } catch (e: any) {
+      console.error("Local Save Error:", e);
+      if (showToast) toast.error("Error al guardar expediente o imágenes de forma local.");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGeneratePDF = async () => {
     if (!validateData()) return;
     setLoading(true);
@@ -412,25 +494,18 @@ export default function ImportReportWizard() {
       const orderedSelection = selectionOrder.map(id => photos.find(p => p.id === id)).filter(Boolean);
       const doc = await pdfGenerator.generateStudyReport(pdfFinalData, orderedSelection);
 
-      // Save local folder structure
-      const patientFolderName = `${patientData.nombre} ${patientData.apellidos}`;
-      const localPatientPath = await localRecordService.ensurePatientFolder(patientFolderName, patientData.birthDate);
-      const localStudyPath = await localRecordService.ensureStudyFolder(localPatientPath!, studyData.type);
+      // Guardar expediente y fotos localmente + DB
+      await savePatientAndPhotosLocally(false);
 
-      if (localStudyPath) {
-        // Save images
-        for (let i = 0; i < orderedSelection.length; i++) {
-          await localRecordService.saveCapture(localStudyPath, i + 1, orderedSelection[i].image);
+      // Guardar PDF en carpeta local
+      const patientFolderName = `${patientData.nombre} ${patientData.apellidos}`.trim();
+      const localPatientPath = await localRecordService.ensurePatientFolder(patientFolderName, patientData.birthDate);
+      if (localPatientPath) {
+        const localStudyPath = await localRecordService.ensureStudyFolder(localPatientPath, studyData.type);
+        if (localStudyPath) {
+          const pdfBlob = doc.output('blob');
+          await localRecordService.saveReportPDF(localStudyPath, pdfBlob);
         }
-        // Save metadata
-        await localRecordService.saveMetadata(localStudyPath, {
-          ...pdfFinalData,
-          imported: true,
-          importDate: new Date().toISOString()
-        });
-        // Save PDF
-        const pdfBlob = doc.output('blob');
-        await localRecordService.saveReportPDF(localStudyPath, pdfBlob);
       }
 
       doc.save(`Reporte_Importado_${patientData.nombre}.pdf`);
@@ -499,6 +574,9 @@ export default function ImportReportWizard() {
         </div>
 
         <div className="space-y-4 mt-auto">
+          <Button onClick={() => savePatientAndPhotosLocally(true)} disabled={loading} variant="primary" className="w-full h-12 rounded-2xl text-white font-bold uppercase text-[10px] tracking-widest shadow-md hover:scale-[1.02] transition-all">
+             {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Guardar Expediente y Fotos"}
+          </Button>
           <Button onClick={saveDraft} variant="outline" className="w-full h-12 rounded-2xl border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-widest hover:bg-slate-50">
              Guardar Borrador
           </Button>
@@ -578,25 +656,28 @@ export default function ImportReportWizard() {
                                key={p.id}
                                onClick={() => handleTogglePhoto(p.id)}
                                className={cn(
-                                 "relative aspect-square rounded-[32px] overflow-hidden cursor-pointer transition-all duration-300 border-none",
-                                 isSelected ? "ring-4 ring-primary ring-offset-4 scale-[0.98]" : "opacity-60 grayscale hover:opacity-100 hover:grayscale-0 shadow-sm hover:shadow-xl"
+                                 "relative aspect-square rounded-[32px] overflow-hidden cursor-pointer transition-all duration-300 border border-slate-100 group shadow-sm hover:shadow-xl",
+                                 isSelected ? "ring-4 ring-primary ring-offset-2 scale-[0.98] shadow-lg shadow-primary/10" : "hover:scale-[1.01]"
                                )}
                             >
                                <img src={p.image} className="w-full h-full object-cover" />
-                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
-                                  <button
-                                     onClick={(e) => { e.stopPropagation(); removePhoto(p.id); }}
-                                     className="p-3 bg-danger text-white rounded-xl hover:scale-110 active:scale-95 transition-all"
-                                  >
-                                     <Trash2 size={20} />
-                                  </button>
-                               </div>
+
+                               {/* Badge de Selección (Top-Left) */}
                                <div className={cn(
-                                  "absolute top-4 left-4 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg",
-                                  isSelected ? "bg-primary text-white" : "bg-white/90 text-slate-300"
+                                  "absolute top-4 left-4 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-lg pointer-events-none z-10",
+                                  isSelected ? "bg-primary text-white" : "bg-white/90 text-slate-400"
                                )}>
                                   {isSelected ? selectIdx : <Plus size={20} />}
                                </div>
+
+                               {/* Botón Eliminar a un lado (Top-Right) */}
+                               <button
+                                  onClick={(e) => { e.stopPropagation(); removePhoto(p.id); }}
+                                  className="absolute top-4 right-4 w-10 h-10 rounded-2xl bg-white/90 hover:bg-danger text-slate-400 hover:text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 z-20"
+                                  title="Eliminar imagen"
+                               >
+                                  <Trash2 size={18} />
+                               </button>
                             </Card>
                           );
                         })}
@@ -695,7 +776,7 @@ export default function ImportReportWizard() {
                              <button key={d.id} onClick={()=>setDoctorData(d)} className={cn("p-6 rounded-3xl border-2 transition-all flex items-center gap-4 text-left", doctorData?.id === d.id ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/5" : "border-slate-100 bg-white")}>
                                 <Avatar fallback={d.nombre[0]} className="h-12 w-12 font-bold" />
                                 <div className="min-w-0">
-                                   <p className="font-bold uppercase italic text-sm truncate">{d.nombre} {d.apellidos}</p>
+                                   <p className="font-bold uppercase italic text-sm truncate">{formatDoctorName(d)}</p>
                                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest truncate">{d.especialidad}</p>
                                 </div>
                              </button>

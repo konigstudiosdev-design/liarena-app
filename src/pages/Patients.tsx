@@ -65,7 +65,9 @@ export default function Patients() {
   }, [orgId]);
 
   async function fetchPatients() {
-    setIsLoading(true);
+    if (patients.length === 0) {
+      setIsLoading(true);
+    }
     try {
       const { data, error } = await supabase
         .from('patients')
@@ -99,7 +101,6 @@ export default function Patients() {
 
     setIsProcessing(true);
     try {
-      // Limpieza de datos antes de enviar a Supabase
       const cleanData = {
         ...formData,
         fecha_nacimiento: formData.fecha_nacimiento || null,
@@ -124,7 +125,7 @@ export default function Patients() {
           .insert({
             ...cleanData,
             expediente: generatedExpediente,
-            organization_id: orgId // Optional, kept for reference where it was created
+            organization_id: orgId
           });
         if (error) throw error;
         toast.success("Paciente registrado exitosamente");

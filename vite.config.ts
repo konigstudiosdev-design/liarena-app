@@ -7,6 +7,7 @@ import electron from 'vite-plugin-electron/simple'
 const isElectron = process.env.ELECTRON === 'true' || process.env.VITE_DEV_SERVER_URL !== undefined;
 
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     tailwindcss(),

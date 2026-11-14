@@ -33,6 +33,10 @@ import SystemControl from "./pages/dev/SystemControl";
 import DevSettings from "./pages/dev/DevSettings";
 import DevProfile from "./pages/dev/DevProfile";
 
+// Web Portal Pages
+import DocumentPortal from "./pages/web/DocumentPortal";
+import DocumentEditor from "./pages/web/DocumentEditor";
+
 import { Toaster, Card, Button } from "./components/ui";
 import { Clock, ArrowRight } from "lucide-react";
 import { dbMigrationService } from "./lib/db-migration-service";
@@ -61,7 +65,6 @@ function AppWorkstation() {
         setHasSession(!!session);
 
         if (session) {
-          // Attempt to load profile without blocking entire app if it fails
           try {
             const { data: profile } = await supabase.from('users').select('id, organization_id').eq('auth_user_id', session.user.id).maybeSingle();
             if (profile) {
@@ -157,6 +160,10 @@ function AppWorkstation() {
 
                 <Route element={<SecurityGuard allowedRoles={['doctor', 'medic']}><DashboardLayout role="medic" /></SecurityGuard>}>
                   <Route path="/medic" element={<MedicDashboard />} />
+                  <Route path="/documents" element={<DocumentPortal defaultTab="all" />} />
+                  <Route path="/documents/pending" element={<DocumentPortal defaultTab="pending" />} />
+                  <Route path="/documents/completed" element={<DocumentPortal defaultTab="completed" />} />
+                  <Route path="/documents/editor/:studyId" element={<DocumentEditor />} />
                   <Route path="/patients" element={<Patients />} />
                   <Route path="/profile" element={<Profile />} />
                 </Route>
