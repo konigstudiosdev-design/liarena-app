@@ -948,7 +948,6 @@ export default function ProcedureScreen() {
           {/* ÁREA DE VIDEO (BASE LAYER - Fixed 100%) */}
           <main className="flex-1 relative z-10 cursor-default isolation-auto overflow-hidden bg-[#0A0A0B] p-6 lg:p-10">
             <div ref={containerRef} className="w-full h-full relative flex items-center justify-center bg-black rounded-[40px] overflow-hidden border border-white/10 shadow-2xl">
-               <div className="absolute inset-0 flex items-center justify-center">
 
               {/* NO VIDEO SIGNAL OVERLAY (Phase 5) */}
               {signalStatus !== 'active' && (
