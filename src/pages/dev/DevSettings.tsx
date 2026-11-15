@@ -108,7 +108,7 @@ export default function DevSettings() {
             {activeTab === "version" && (
                <Card className="border-none shadow-sm bg-white p-10 rounded-[40px] space-y-6 text-center">
                   <h3 className="text-2xl font-bold italic text-slate-900 tracking-tight">LIARENA clinical-os</h3>
-                  <p className="text-sm font-medium text-slate-400">Versión 1.0.5-build.850</p>
+                  <p className="text-sm font-medium text-slate-400">Versión 1.0.9-build.900</p>
                </Card>
             )}
          </div>

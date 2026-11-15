@@ -1,7 +1,7 @@
 {
   "name": "liarena-saas",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.9",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

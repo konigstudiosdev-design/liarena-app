@@ -248,7 +248,7 @@ export default function Login() {
               <div className="w-1 h-1 rounded-full bg-slate-200" />
               <div className="flex items-center gap-2">
                  <Zap className="w-3.5 h-3.5 text-slate-300" />
-                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">v1.0.4 Clinical Build</span>
+                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">v1.0.9 Clinical Build</span>
               </div>
            </div>
         </div>

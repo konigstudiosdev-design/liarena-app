@@ -24,8 +24,8 @@ export default function DownloadPage() {
 
   // Estos nombres deben coincidir con lo que genera electron-builder en package.json
   const links = {
-    mac: `${GITHUB_BASE}/Liarena-1.0.4-mac.dmg`,
-    win: `${GITHUB_BASE}/Liarena-1.0.4-win.exe`
+    mac: `${GITHUB_BASE}/Liarena-1.0.9-mac.dmg`,
+    win: `${GITHUB_BASE}/Liarena-1.0.9-win.exe`
   };
 
   return (
@@ -40,7 +40,7 @@ export default function DownloadPage() {
         </div>
         <div className="flex items-center gap-6">
            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:inline">Centro de Distribución Oficial</span>
-           <Badge variant="success" className="h-6">v1.0.4 Stable</Badge>
+           <Badge variant="success" className="h-6">v1.0.9 Stable</Badge>
         </div>
       </nav>
 
